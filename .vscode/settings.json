@@ -1,0 +1,6 @@
+{
+	"files.associations": {
+		"sstream": "c",
+		"common_error_exit.h": "c"
+	}
+}
