@@ -1,1 +1,5 @@
 build
+.github
+.github/*
+
+.DS_Store
