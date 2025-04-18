@@ -3,3 +3,5 @@ build
 .github/*
 
 .DS_Store
+.vscode
+.vscode/*
