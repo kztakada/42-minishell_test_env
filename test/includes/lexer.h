@@ -1,5 +1,5 @@
-#ifndef LEXING_H
-# define LEXING_H
+#ifndef LEXER_H
+# define LEXER_H
 // tester
 # include "unity.h"
 // support

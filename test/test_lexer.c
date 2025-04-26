@@ -1,4 +1,4 @@
-#include "lexing.h"
+#include "lexer.h"
 #include "unity.h"
 
 // using source file
@@ -13,6 +13,9 @@ TEST_SOURCE_FILE("ft_lstdelone.c")
 TEST_SOURCE_FILE("ft_lstlast.c")
 TEST_SOURCE_FILE("ft_strncmp.c")
 TEST_SOURCE_FILE("dictionary.c")
+TEST_SOURCE_FILE("lexicize_func_sign.c")
+TEST_SOURCE_FILE("lexicize_text.c")
+TEST_SOURCE_FILE("lexing__utils.c")
 
 // Helper function to count tokens
 static int	count_tokens(t_list *token_list)
@@ -556,5 +559,37 @@ void	test_InvalidInput(void)
 	check_token(token2, OP_PIPE, "|");
 	check_token(token3, OP_PIPE, "|");
 	check_token(token4, OPERAND_TEXT, "grep");
+	ft_lstclear(&tokens, delete_token);
+}
+
+void	test_foolish_duble_quote(void)
+{
+	t_list	*tokens;
+	t_token	*token1;
+	t_token	*token2;
+
+	tokens = lexer("echo \"hel(l>>>>>o' &&wo<<<<<<)r'ld");
+	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	// Check each token's type and content
+	token1 = (t_token *)tokens->content;
+	token2 = (t_token *)tokens->next->content;
+	check_token(token1, OPERAND_TEXT, "echo");
+	check_token(token2, QUOTE_DOUBLE, "\"");
+	ft_lstclear(&tokens, delete_token);
+}
+
+void	test_foolish_single_quote(void)
+{
+	t_list	*tokens;
+	t_token	*token1;
+	t_token	*token2;
+
+	tokens = lexer("echo 'hel(l>>>>>o\" &&w)o<<<<<<r\"ld");
+	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	// Check each token's type and content
+	token1 = (t_token *)tokens->content;
+	token2 = (t_token *)tokens->next->content;
+	check_token(token1, OPERAND_TEXT, "echo");
+	check_token(token2, QUOTE_SINGLE, "'");
 	ft_lstclear(&tokens, delete_token);
 }
