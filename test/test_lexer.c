@@ -36,7 +36,7 @@ static void	check_token(t_token *token, int expected_type,
 		const char *expected_content)
 {
 	TEST_ASSERT_EQUAL_INT(expected_type, token->type);
-	TEST_ASSERT_EQUAL_STRING(expected_content, token->content);
+	TEST_ASSERT_EQUAL_STRING(expected_content, token->value);
 }
 
 void	setUp(void)
