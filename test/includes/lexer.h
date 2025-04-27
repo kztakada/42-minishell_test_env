@@ -6,7 +6,7 @@
 # include "common_error_exit.h"
 # include "t_minishell.h"
 
-t_list	*lexer(char *input);
+int		lexer(char *input, t_list **token_list);
 void	free_token(void *target);
 
 #endif
