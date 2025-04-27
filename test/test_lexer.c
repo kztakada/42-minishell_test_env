@@ -712,3 +712,28 @@ void	test_foolish_single_quote(void)
 	check_token(token2, QUOTE_SINGLE, "'");
 	ft_lstclear(&tokens, free_token);
 }
+
+void	test_foolish_single_quote_02(void)
+{
+	t_list	*tokens;
+	t_token	*token1;
+	t_token	*token2;
+	t_token	*token3;
+	t_token	*token4;
+	int		exit_status;
+
+	tokens = NULL;
+	exit_status = lexer(")h'", &tokens);
+	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	// Check each token's type and content
+	token1 = (t_token *)tokens->content;
+	token2 = (t_token *)tokens->next->content;
+	token3 = (t_token *)tokens->next->next->content;
+	token4 = (t_token *)tokens->next->next->next->content;
+	check_token(token1, OP_CLOSE, ")");
+	check_token(token2, OPERAND_TEXT, "h");
+	check_token(token3, QUOTE_SINGLE, "'");
+	check_token(token4, TERMINATOR, "\n");
+	ft_lstclear(&tokens, free_token);
+}
