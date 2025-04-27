@@ -49,12 +49,23 @@ void	tearDown(void)
 	// Cleanup code runs after each test
 }
 
-void	test_EmptyInput(void)
+void	test_NULLInput(void)
 {
 	t_list	*tokens;
 
-	tokens = lexer("");
+	tokens = lexer(NULL);
 	TEST_ASSERT_NULL(tokens);
+}
+
+void	test_EmptyInput(void)
+{
+	t_list	*tokens;
+	t_token	*token1;
+
+	tokens = lexer("");
+	TEST_ASSERT_NOT_NULL(tokens);
+	token1 = (t_token *)tokens->content;
+	check_token(token1, TERMINATOR, "\n");
 }
 
 void	test_SimpleCommand(void)
@@ -62,13 +73,16 @@ void	test_SimpleCommand(void)
 	t_list	*tokens;
 	t_token	*token1;
 	t_token	*token2;
+	t_token	*token3;
 
 	tokens = lexer("echo hello");
 	TEST_ASSERT_NOT_NULL(tokens);
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
+	token3 = (t_token *)tokens->next->next->content;
 	check_token(token1, OPERAND_TEXT, "echo");
 	check_token(token2, OPERAND_TEXT, "hello");
+	check_token(token3, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }
 
@@ -77,7 +91,7 @@ void	test_MultipleWords(void)
 	t_list	*tokens;
 
 	tokens = lexer("ls -la documents");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Additional assertions for token content would go here
 	ft_lstclear(&tokens, free_token);
 }
@@ -91,7 +105,7 @@ void	test_CommandWithPipe(void)
 	t_token	*token4;
 
 	tokens = lexer("ls | grep test");
-	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -114,7 +128,7 @@ void	test_CommandWithRedirections(void)
 	t_token	*token5;
 
 	tokens = lexer("cat < infile > outfile");
-	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -138,7 +152,7 @@ void	test_DoubleQuotes(void)
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\"");
-	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -160,7 +174,7 @@ void	test_SingleQuotes(void)
 	t_token	*token4;
 
 	tokens = lexer("echo 'hello world'");
-	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -181,7 +195,7 @@ void	test_Heredoc(void)
 	t_token	*token3;
 
 	tokens = lexer("cat << EOF");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -200,7 +214,7 @@ void	test_Append(void)
 	t_token	*token3;
 
 	tokens = lexer("echo >> output.txt");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -219,7 +233,7 @@ void	test_AndOperator(void)
 	t_token	*token3;
 
 	tokens = lexer("command1 && command2");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -238,7 +252,7 @@ void	test_OrOperator(void)
 	t_token	*token3;
 
 	tokens = lexer("command1 || command2");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -257,7 +271,7 @@ void	test_Parentheses(void)
 	t_token	*token3;
 
 	tokens = lexer("(command1)");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -277,7 +291,7 @@ void	test_ComplexCommand(void)
 	t_token	*token4;
 
 	tokens = lexer("command1 | command2 && command3");
-	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -304,7 +318,7 @@ void	test_ComplexCommandWithQuotes(void)
 	t_token	*token9;
 
 	tokens = lexer("echo \"hello world\" | grep 'test'");
-	TEST_ASSERT_EQUAL_INT(9, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(10, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -336,7 +350,7 @@ void	test_ComplexCommandWithRedirections(void)
 	t_token	*token4;
 
 	tokens = lexer("cat < input.txt > output.txt");
-	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -362,7 +376,7 @@ void	test_ComplexCommandWithOperators(void)
 	t_token	*token8;
 
 	tokens = lexer("echo hello | grep test && ls -la");
-	TEST_ASSERT_EQUAL_INT(8, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(9, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -393,7 +407,7 @@ void	test_ComplexCommandWithQuotesAndOperators(void)
 	t_token	*token_tail;
 
 	tokens = lexer("echo \"hello world\" | grep 'test' && ls -la");
-	TEST_ASSERT_EQUAL_INT(12, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(13, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -417,7 +431,7 @@ void	test_ComplexCommandWithRedirectionsAndOperators(void)
 	t_token	*token4;
 
 	tokens = lexer("cat < input.txt > output.txt | grep test && ls -la");
-	TEST_ASSERT_EQUAL_INT(11, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(12, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -439,7 +453,7 @@ void	test_ComplexCommandWithQuotesAndRedirections(void)
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\" < input.txt > output.txt");
-	TEST_ASSERT_EQUAL_INT(8, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(9, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -461,7 +475,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirections(void)
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\" | grep 'test' < input.txt > output.txt");
-	TEST_ASSERT_EQUAL_INT(13, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(14, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -483,7 +497,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParentheses(void
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\" | (grep 'test' < input.txt > output.txt)");
-	TEST_ASSERT_EQUAL_INT(15, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(16, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -505,7 +519,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\" | (grep 'test' << EOF < input.txt > output.txt)");
-	TEST_ASSERT_EQUAL_INT(17, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(18, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -527,7 +541,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	t_token	*token4;
 
 	tokens = lexer("echo \"hello world\" | (grep 'test' << EOF < input.txt > output.txt >> append.txt)");
-	TEST_ASSERT_EQUAL_INT(19, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(20, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -549,7 +563,7 @@ void	test_InvalidInput(void)
 	t_token	*token4;
 
 	tokens = lexer("echo | | grep");
-	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -569,7 +583,7 @@ void	test_foolish_duble_quote(void)
 	t_token	*token2;
 
 	tokens = lexer("echo \"hel(l>>>>>o' &&wo<<<<<<)r'ld");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
@@ -585,7 +599,7 @@ void	test_foolish_single_quote(void)
 	t_token	*token2;
 
 	tokens = lexer("echo 'hel(l>>>>>o\" &&w)o<<<<<<r\"ld");
-	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
 	token1 = (t_token *)tokens->content;
 	token2 = (t_token *)tokens->next->content;
