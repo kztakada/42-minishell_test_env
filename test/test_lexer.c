@@ -69,7 +69,7 @@ void	test_SimpleCommand(void)
 	token2 = (t_token *)tokens->next->content;
 	check_token(token1, OPERAND_TEXT, "echo");
 	check_token(token2, OPERAND_TEXT, "hello");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_MultipleWords(void)
@@ -79,7 +79,7 @@ void	test_MultipleWords(void)
 	tokens = lexer("ls -la documents");
 	TEST_ASSERT_EQUAL_INT(3, count_tokens(tokens));
 	// Additional assertions for token content would go here
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_CommandWithPipe(void)
@@ -101,7 +101,7 @@ void	test_CommandWithPipe(void)
 	check_token(token2, OP_PIPE, "|");
 	check_token(token3, OPERAND_TEXT, "grep");
 	check_token(token4, OPERAND_TEXT, "test");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_CommandWithRedirections(void)
@@ -126,7 +126,7 @@ void	test_CommandWithRedirections(void)
 	check_token(token3, OPERAND_TEXT, "infile");
 	check_token(token4, OP_OUTPUT, ">");
 	check_token(token5, OPERAND_TEXT, "outfile");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_DoubleQuotes(void)
@@ -148,7 +148,7 @@ void	test_DoubleQuotes(void)
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_SingleQuotes(void)
@@ -170,7 +170,7 @@ void	test_SingleQuotes(void)
 	check_token(token2, QUOTE_SINGLE, "'");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_SINGLE, "'");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Heredoc(void)
@@ -189,7 +189,7 @@ void	test_Heredoc(void)
 	check_token(token1, OPERAND_TEXT, "cat");
 	check_token(token2, OP_HEREDOC, "<<");
 	check_token(token3, OPERAND_TEXT, "EOF");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Append(void)
@@ -208,7 +208,7 @@ void	test_Append(void)
 	check_token(token1, OPERAND_TEXT, "echo");
 	check_token(token2, OP_APPEND, ">>");
 	check_token(token3, OPERAND_TEXT, "output.txt");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_AndOperator(void)
@@ -227,7 +227,7 @@ void	test_AndOperator(void)
 	check_token(token1, OPERAND_TEXT, "command1");
 	check_token(token2, OP_AND, "&&");
 	check_token(token3, OPERAND_TEXT, "command2");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_OrOperator(void)
@@ -246,7 +246,7 @@ void	test_OrOperator(void)
 	check_token(token1, OPERAND_TEXT, "command1");
 	check_token(token2, OP_OR, "||");
 	check_token(token3, OPERAND_TEXT, "command2");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Parentheses(void)
@@ -265,7 +265,7 @@ void	test_Parentheses(void)
 	check_token(token1, OP_OPEN, "(");
 	check_token(token2, OPERAND_TEXT, "command1");
 	check_token(token3, OP_CLOSE, ")");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommand(void)
@@ -287,7 +287,7 @@ void	test_ComplexCommand(void)
 	check_token(token2, OP_PIPE, "|");
 	check_token(token3, OPERAND_TEXT, "command2");
 	check_token(token4, OP_AND, "&&");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotes(void)
@@ -324,7 +324,7 @@ void	test_ComplexCommandWithQuotes(void)
 	check_token(token7, QUOTE_SINGLE, "'");
 	check_token(token8, OPERAND_TEXT, "test");
 	check_token(token9, QUOTE_SINGLE, "'");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithRedirections(void)
@@ -346,7 +346,7 @@ void	test_ComplexCommandWithRedirections(void)
 	check_token(token2, OP_INPUT, "<");
 	check_token(token3, OPERAND_TEXT, "input.txt");
 	check_token(token4, OP_OUTPUT, ">");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithOperators(void)
@@ -380,7 +380,7 @@ void	test_ComplexCommandWithOperators(void)
 	check_token(token6, OP_AND, "&&");
 	check_token(token7, OPERAND_TEXT, "ls");
 	check_token(token8, OPERAND_TEXT, "-la");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperators(void)
@@ -405,7 +405,7 @@ void	test_ComplexCommandWithQuotesAndOperators(void)
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
 	check_token(token_tail, OPERAND_TEXT, "-la");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithRedirectionsAndOperators(void)
@@ -427,7 +427,7 @@ void	test_ComplexCommandWithRedirectionsAndOperators(void)
 	check_token(token2, OP_INPUT, "<");
 	check_token(token3, OPERAND_TEXT, "input.txt");
 	check_token(token4, OP_OUTPUT, ">");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndRedirections(void)
@@ -449,7 +449,7 @@ void	test_ComplexCommandWithQuotesAndRedirections(void)
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirections(void)
@@ -471,7 +471,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirections(void)
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParentheses(void)
@@ -493,7 +493,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParentheses(void
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHeredoc(void)
@@ -515,7 +515,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHeredocAndAppend(void)
@@ -537,7 +537,7 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	check_token(token2, QUOTE_DOUBLE, "\"");
 	check_token(token3, OPERAND_TEXT, "hello world");
 	check_token(token4, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_InvalidInput(void)
@@ -559,7 +559,7 @@ void	test_InvalidInput(void)
 	check_token(token2, OP_PIPE, "|");
 	check_token(token3, OP_PIPE, "|");
 	check_token(token4, OPERAND_TEXT, "grep");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_foolish_duble_quote(void)
@@ -575,7 +575,7 @@ void	test_foolish_duble_quote(void)
 	token2 = (t_token *)tokens->next->content;
 	check_token(token1, OPERAND_TEXT, "echo");
 	check_token(token2, QUOTE_DOUBLE, "\"");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }
 
 void	test_foolish_single_quote(void)
@@ -591,5 +591,5 @@ void	test_foolish_single_quote(void)
 	token2 = (t_token *)tokens->next->content;
 	check_token(token1, OPERAND_TEXT, "echo");
 	check_token(token2, QUOTE_SINGLE, "'");
-	ft_lstclear(&tokens, delete_token);
+	ft_lstclear(&tokens, free_token);
 }

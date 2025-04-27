@@ -7,6 +7,6 @@
 # include "t_minishell.h"
 
 t_list	*lexer(char *input);
-void	delete_token(void *target);
+void	free_token(void *target);
 
 #endif
