@@ -31,10 +31,24 @@ static int	count_tokens(t_list *token_list)
 	return (count);
 }
 
+t_list			*tester_tokens;
+
 // Helper to check token values
-static void	check_token(t_token *token, int expected_type,
+static t_token	*make_token(int token_index, t_list *tokens)
+{
+	tester_tokens = tokens;
+	while (token_index > 0)
+	{
+		tester_tokens = tester_tokens->next;
+		token_index--;
+	}
+	return ((t_token *)tester_tokens->content);
+}
+
+static void	check_token(t_token *token, int expected_id, int expected_type,
 		const char *expected_content)
 {
+	TEST_ASSERT_EQUAL_UINT(expected_id, token->id);
 	TEST_ASSERT_EQUAL_INT(expected_type, token->type);
 	TEST_ASSERT_EQUAL_STRING(expected_content, token->value);
 }
@@ -63,32 +77,26 @@ void	test_NULLInput(void)
 void	test_EmptyInput(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
 	int		exit_status;
 
 	tokens = NULL;
 	exit_status = lexer("", &tokens);
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_NOT_NULL(tokens);
-	token1 = (t_token *)tokens->content;
-	check_token(token1, TERMINATOR, "\n");
+	check_token(make_token(0, tokens), 0, TERMINATOR, "\n");
 }
 
 void	test_SimpleCommand(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
 	int		exit_status;
 
 	tokens = NULL;
 	exit_status = lexer("echo hello", &tokens);
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_NOT_NULL(tokens);
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	check_token(token1, OPERAND_TEXT, "echo hello");
-	check_token(token2, TERMINATOR, "\n");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo hello");
+	check_token(make_token(1, tokens), 1, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }
 
@@ -108,10 +116,6 @@ void	test_MultipleWords(void)
 void	test_CommandWithPipe(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -119,25 +123,16 @@ void	test_CommandWithPipe(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "ls ");
-	check_token(token2, OP_PIPE, "|");
-	check_token(token3, OPERAND_TEXT, "grep test");
-	check_token(token4, TERMINATOR, "\n");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "ls ");
+	check_token(make_token(1, tokens), 1, OP_PIPE, "|");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "grep test");
+	check_token(make_token(3, tokens), 3, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_CommandWithRedirections(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
-	t_token	*token5;
 	int		exit_status;
 
 	tokens = NULL;
@@ -145,50 +140,33 @@ void	test_CommandWithRedirections(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	token5 = (t_token *)tokens->next->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "cat ");
-	check_token(token2, OP_INPUT, "<");
-	check_token(token3, OPERAND_TEXT, "infile ");
-	check_token(token4, OP_OUTPUT, ">");
-	check_token(token5, OPERAND_TEXT, "outfile");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "cat ");
+	check_token(make_token(1, tokens), 1, OP_INPUT, "<");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "infile ");
+	check_token(make_token(3, tokens), 3, OP_OUTPUT, ">");
+	check_token(make_token(4, tokens), 4, OPERAND_TEXT, "outfile");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_DoubleQuotes(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
 	exit_status = lexer("echo \"hello world\"", &tokens);
 	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_SingleQuotes(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -196,23 +174,16 @@ void	test_SingleQuotes(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_SINGLE, "'");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_SINGLE, "'");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_SINGLE, "'");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_SINGLE, "'");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Heredoc(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
 	int		exit_status;
 
 	tokens = NULL;
@@ -220,21 +191,15 @@ void	test_Heredoc(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	check_token(token1, OPERAND_TEXT, "cat ");
-	check_token(token2, OP_HEREDOC, "<<");
-	check_token(token3, OPERAND_TEXT, "EOF");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "cat ");
+	check_token(make_token(1, tokens), 1, OP_HEREDOC, "<<");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "EOF");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Append(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
 	int		exit_status;
 
 	tokens = NULL;
@@ -242,21 +207,15 @@ void	test_Append(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, OP_APPEND, ">>");
-	check_token(token3, OPERAND_TEXT, "output.txt");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, OP_APPEND, ">>");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "output.txt");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_AndOperator(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
 	int		exit_status;
 
 	tokens = NULL;
@@ -264,21 +223,15 @@ void	test_AndOperator(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	check_token(token1, OPERAND_TEXT, "command1 ");
-	check_token(token2, OP_AND, "&&");
-	check_token(token3, OPERAND_TEXT, "command2");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "command1 ");
+	check_token(make_token(1, tokens), 1, OP_AND, "&&");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "command2");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_OrOperator(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
 	int		exit_status;
 
 	tokens = NULL;
@@ -286,21 +239,15 @@ void	test_OrOperator(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	check_token(token1, OPERAND_TEXT, "command1 ");
-	check_token(token2, OP_OR, "||");
-	check_token(token3, OPERAND_TEXT, "command2");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "command1 ");
+	check_token(make_token(1, tokens), 1, OP_OR, "||");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "command2");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_Parentheses(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
 	int		exit_status;
 
 	tokens = NULL;
@@ -308,22 +255,15 @@ void	test_Parentheses(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	check_token(token1, OP_OPEN, "(");
-	check_token(token2, OPERAND_TEXT, "command1");
-	check_token(token3, OP_CLOSE, ")");
+	check_token(make_token(0, tokens), 0, OP_OPEN, "(");
+	check_token(make_token(1, tokens), 1, OPERAND_TEXT, "command1");
+	check_token(make_token(2, tokens), 2, OP_CLOSE, ")");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommand(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -331,30 +271,16 @@ void	test_ComplexCommand(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "command1 ");
-	check_token(token2, OP_PIPE, "|");
-	check_token(token3, OPERAND_TEXT, "command2 ");
-	check_token(token4, OP_AND, "&&");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "command1 ");
+	check_token(make_token(1, tokens), 1, OP_PIPE, "|");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "command2 ");
+	check_token(make_token(3, tokens), 3, OP_AND, "&&");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotes(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
-	t_token	*token5;
-	t_token	*token6;
-	t_token	*token7;
-	t_token	*token8;
-	t_token	*token9;
-	t_token	*token10;
 	int		exit_status;
 
 	tokens = NULL;
@@ -362,36 +288,22 @@ void	test_ComplexCommandWithQuotes(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(11, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	token5 = (t_token *)tokens->next->next->next->next->content;
-	token6 = (t_token *)tokens->next->next->next->next->next->content;
-	token7 = (t_token *)tokens->next->next->next->next->next->next->content;
-	token8 = (t_token *)tokens->next->next->next->next->next->next->next->content;
-	token9 = (t_token *)tokens->next->next->next->next->next->next->next->next->content;
-	token10 = (t_token *)tokens->next->next->next->next->next->next->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
-	check_token(token5, OPERAND_TEXT, " ");
-	check_token(token6, OP_PIPE, "|");
-	check_token(token7, OPERAND_TEXT, "grep ");
-	check_token(token8, QUOTE_SINGLE, "'");
-	check_token(token9, OPERAND_TEXT, "test");
-	check_token(token10, QUOTE_SINGLE, "'");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
+	check_token(make_token(4, tokens), 4, OPERAND_TEXT, " ");
+	check_token(make_token(5, tokens), 5, OP_PIPE, "|");
+	check_token(make_token(6, tokens), 6, OPERAND_TEXT, "grep ");
+	check_token(make_token(7, tokens), 7, QUOTE_SINGLE, "'");
+	check_token(make_token(8, tokens), 8, OPERAND_TEXT, "test");
+	check_token(make_token(9, tokens), 9, QUOTE_SINGLE, "'");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithRedirections(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -399,25 +311,16 @@ void	test_ComplexCommandWithRedirections(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "cat ");
-	check_token(token2, OP_INPUT, "<");
-	check_token(token3, OPERAND_TEXT, "input.txt ");
-	check_token(token4, OP_OUTPUT, ">");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "cat ");
+	check_token(make_token(1, tokens), 1, OP_INPUT, "<");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "input.txt ");
+	check_token(make_token(3, tokens), 3, OP_OUTPUT, ">");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithOperators(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
-	t_token	*token5;
 	int		exit_status;
 
 	tokens = NULL;
@@ -425,36 +328,17 @@ void	test_ComplexCommandWithOperators(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(6, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	token5 = (t_token *)tokens->next->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo hello ");
-	check_token(token2, OP_PIPE, "|");
-	check_token(token3, OPERAND_TEXT, "grep test ");
-	check_token(token4, OP_AND, "&&");
-	check_token(token5, OPERAND_TEXT, "ls -la");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo hello ");
+	check_token(make_token(1, tokens), 1, OP_PIPE, "|");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "grep test ");
+	check_token(make_token(3, tokens), 3, OP_AND, "&&");
+	check_token(make_token(4, tokens), 4, OPERAND_TEXT, "ls -la");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperators(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
-	t_token	*token5;
-	t_token	*token6;
-	t_token	*token7;
-	t_token	*token8;
-	t_token	*token9;
-	t_token	*token10;
-	t_token	*token11;
-	t_token	*token12;
-	t_token	*token13;
-	t_token	*token_tail;
 	int		exit_status;
 
 	tokens = NULL;
@@ -463,44 +347,26 @@ void	test_ComplexCommandWithQuotesAndOperators(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(14, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	token5 = (t_token *)tokens->next->next->next->next->content;
-	token6 = (t_token *)tokens->next->next->next->next->next->content;
-	token7 = (t_token *)tokens->next->next->next->next->next->next->content;
-	token8 = (t_token *)tokens->next->next->next->next->next->next->next->content;
-	token9 = (t_token *)tokens->next->next->next->next->next->next->next->next->content;
-	token10 = (t_token *)tokens->next->next->next->next->next->next->next->next->next->content;
-	token11 = (t_token *)tokens->next->next->next->next->next->next->next->next->next->next->content;
-	token12 = (t_token *)tokens->next->next->next->next->next->next->next->next->next->next->next->content;
-	token13 = (t_token *)tokens->next->next->next->next->next->next->next->next->next->next->next->next->content;
-	token_tail = (t_token *)tokens->next->next->next->next->next->next->next->next->next->next->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
-	check_token(token5, OPERAND_TEXT, " ");
-	check_token(token6, OP_PIPE, "|");
-	check_token(token7, OPERAND_TEXT, "grep ");
-	check_token(token8, QUOTE_SINGLE, "'");
-	check_token(token9, OPERAND_TEXT, "test");
-	check_token(token10, QUOTE_SINGLE, "'");
-	check_token(token11, OPERAND_TEXT, " ");
-	check_token(token12, OP_AND, "&&");
-	check_token(token13, OPERAND_TEXT, "ls -la");
-	check_token(token_tail, TERMINATOR, "\n");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
+	check_token(make_token(4, tokens), 4, OPERAND_TEXT, " ");
+	check_token(make_token(5, tokens), 5, OP_PIPE, "|");
+	check_token(make_token(6, tokens), 6, OPERAND_TEXT, "grep ");
+	check_token(make_token(7, tokens), 7, QUOTE_SINGLE, "'");
+	check_token(make_token(8, tokens), 8, OPERAND_TEXT, "test");
+	check_token(make_token(9, tokens), 9, QUOTE_SINGLE, "'");
+	check_token(make_token(10, tokens), 10, OPERAND_TEXT, " ");
+	check_token(make_token(11, tokens), 11, OP_AND, "&&");
+	check_token(make_token(12, tokens), 12, OPERAND_TEXT, "ls -la");
+	check_token(make_token(13, tokens), 13, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithRedirectionsAndOperators(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -509,24 +375,16 @@ void	test_ComplexCommandWithRedirectionsAndOperators(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(10, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "cat ");
-	check_token(token2, OP_INPUT, "<");
-	check_token(token3, OPERAND_TEXT, "input.txt ");
-	check_token(token4, OP_OUTPUT, ">");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "cat ");
+	check_token(make_token(1, tokens), 1, OP_INPUT, "<");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "input.txt ");
+	check_token(make_token(3, tokens), 3, OP_OUTPUT, ">");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndRedirections(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -535,24 +393,16 @@ void	test_ComplexCommandWithQuotesAndRedirections(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(10, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirections(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -561,24 +411,16 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirections(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(16, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParentheses(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -587,24 +429,16 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParentheses(void
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(18, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHeredoc(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -613,24 +447,16 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(20, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHeredocAndAppend(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -639,24 +465,16 @@ void	test_ComplexCommandWithQuotesAndOperatorsAndRedirectionsAndParenthesesAndHe
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(22, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
-	check_token(token3, OPERAND_TEXT, "hello world");
-	check_token(token4, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
+	check_token(make_token(2, tokens), 2, OPERAND_TEXT, "hello world");
+	check_token(make_token(3, tokens), 3, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_InvalidInput(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -664,22 +482,16 @@ void	test_InvalidInput(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(5, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, OP_PIPE, "|");
-	check_token(token3, OP_PIPE, "|");
-	check_token(token4, OPERAND_TEXT, "grep");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, OP_PIPE, "|");
+	check_token(make_token(2, tokens), 2, OP_PIPE, "|");
+	check_token(make_token(3, tokens), 3, OPERAND_TEXT, "grep");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_foolish_duble_quote(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
 	int		exit_status;
 
 	tokens = NULL;
@@ -687,18 +499,14 @@ void	test_foolish_duble_quote(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_DOUBLE, "\"");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_DOUBLE, "\"");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_foolish_single_quote(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
 	int		exit_status;
 
 	tokens = NULL;
@@ -706,20 +514,14 @@ void	test_foolish_single_quote(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	check_token(token1, OPERAND_TEXT, "echo ");
-	check_token(token2, QUOTE_SINGLE, "'");
+	check_token(make_token(0, tokens), 0, OPERAND_TEXT, "echo ");
+	check_token(make_token(1, tokens), 1, QUOTE_SINGLE, "'");
 	ft_lstclear(&tokens, free_token);
 }
 
 void	test_foolish_single_quote_02(void)
 {
 	t_list	*tokens;
-	t_token	*token1;
-	t_token	*token2;
-	t_token	*token3;
-	t_token	*token4;
 	int		exit_status;
 
 	tokens = NULL;
@@ -727,13 +529,9 @@ void	test_foolish_single_quote_02(void)
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
 	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
 	// Check each token's type and content
-	token1 = (t_token *)tokens->content;
-	token2 = (t_token *)tokens->next->content;
-	token3 = (t_token *)tokens->next->next->content;
-	token4 = (t_token *)tokens->next->next->next->content;
-	check_token(token1, OP_CLOSE, ")");
-	check_token(token2, OPERAND_TEXT, "h");
-	check_token(token3, QUOTE_SINGLE, "'");
-	check_token(token4, TERMINATOR, "\n");
+	check_token(make_token(0, tokens), 0, OP_CLOSE, ")");
+	check_token(make_token(1, tokens), 1, OPERAND_TEXT, "h");
+	check_token(make_token(2, tokens), 2, QUOTE_SINGLE, "'");
+	check_token(make_token(3, tokens), 3, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }
