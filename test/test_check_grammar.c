@@ -97,22 +97,19 @@ static void	test_grammar_error_token(const char *input, int expected_id,
 	TEST_ASSERT_EQUAL_INT(NG, result);
 	// エラートークンの検証
 	TEST_ASSERT_NOT_NULL(token_list);
+	error_token = (t_token *)(token_list->content);
 	if (error_token->type == TERMINATOR)
 		err_text = "newline";
 	else if (error_token->type == OPERAND_TEXT)
 		err_text = replase_first_ifs_with_null(error_token->value);
 	else
 		err_text = error_token->value;
-	error_token = (t_token *)(token_list->content);
 	TEST_ASSERT_NOT_NULL(error_token);
 	TEST_ASSERT_EQUAL_UINT(expected_id, error_token->id);
 	TEST_ASSERT_EQUAL_INT(expected_type, error_token->type);
 	TEST_ASSERT_EQUAL_STRING(expected_value, err_text);
-	// line_num_str = ft_itoa(line_num);
-	// TEST_FAIL_MESSAGE(line_num_str);
 	// クリーンアップ
 	ft_lstclear(&token_list, free_token);
-	// free(line_num_str);
 }
 
 /* 基本的なコマンドのテスト */
