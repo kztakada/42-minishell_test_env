@@ -57,7 +57,8 @@ static char	*replase_first_ifs_with_null(char *str)
 }
 
 // 基本的なテスト関数 - 文法チェックが成功するかどうかをテスト
-static void	test_grammar_validation(const char *input, int expected_result)
+static void	test_grammar_validation(const char *input, int expected_result,
+		int line_num)
 {
 	t_list	*token_list;
 	int		subshell_count;
@@ -66,18 +67,19 @@ static void	test_grammar_validation(const char *input, int expected_result)
 	token_list = NULL;
 	subshell_count = 0;
 	// lexerでトークンリストを取得
-	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input, &token_list));
+	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
+			&token_list), line_num, "TEST_01");
 	// 文法チェックを実行
 	result = check_tokens_grammar(&token_list, &subshell_count);
 	// 結果を検証
-	TEST_ASSERT_EQUAL_INT(expected_result, result);
+	UNITY_TEST_ASSERT_EQUAL_INT(expected_result, result, line_num, "TEST_02");
 	// クリーンアップ
 	ft_lstclear(&token_list, free_token);
 }
 
 // エラー時のトークンポインタを検証するヘルパー関数
 static void	test_grammar_error_token(const char *input, int expected_id,
-		t_token_type expected_type, const char *expected_value)
+		t_token_type expected_type, const char *expected_value, int line_num)
 {
 	t_list	*token_list;
 	int		subshell_count;
@@ -90,13 +92,14 @@ static void	test_grammar_error_token(const char *input, int expected_id,
 	token_list = NULL;
 	subshell_count = 0;
 	// lexerでトークンリストを取得
-	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input, &token_list));
+	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
+			&token_list), line_num, "TEST_01");
 	// 文法チェックを実行
 	result = check_tokens_grammar(&token_list, &subshell_count);
 	// エラーを期待
-	TEST_ASSERT_EQUAL_INT(NG, result);
+	UNITY_TEST_ASSERT_EQUAL_INT(NG, result, line_num, "TEST_02");
 	// エラートークンの検証
-	TEST_ASSERT_NOT_NULL(token_list);
+	UNITY_TEST_ASSERT_NOT_NULL(token_list, line_num, "TEST_03");
 	error_token = (t_token *)(token_list->content);
 	if (error_token->type == TERMINATOR)
 		err_text = "newline";
@@ -104,10 +107,13 @@ static void	test_grammar_error_token(const char *input, int expected_id,
 		err_text = replase_first_ifs_with_null(error_token->value);
 	else
 		err_text = error_token->value;
-	TEST_ASSERT_NOT_NULL(error_token);
-	TEST_ASSERT_EQUAL_UINT(expected_id, error_token->id);
-	TEST_ASSERT_EQUAL_INT(expected_type, error_token->type);
-	TEST_ASSERT_EQUAL_STRING(expected_value, err_text);
+	UNITY_TEST_ASSERT_NOT_NULL(error_token, line_num, "TEST_04");
+	UNITY_TEST_ASSERT_EQUAL_UINT(expected_id, error_token->id, line_num,
+		"TEST_05");
+	UNITY_TEST_ASSERT_EQUAL_INT(expected_type, error_token->type, line_num,
+		"TEST_06");
+	UNITY_TEST_ASSERT_EQUAL_STRING(expected_value, err_text, line_num,
+		"TEST_07");
 	// クリーンアップ
 	ft_lstclear(&token_list, free_token);
 }
@@ -116,202 +122,204 @@ static void	test_grammar_error_token(const char *input, int expected_id,
 
 void	test_SimpleCommand(void)
 {
-	test_grammar_validation("echo hello", OK);
+	test_grammar_validation("echo hello", OK, __LINE__);
 }
 
 void	test_CommandWithArguments(void)
 {
-	test_grammar_validation("ls -la", OK);
+	test_grammar_validation("ls -la", OK, __LINE__);
 }
 
 /* パイプ演算子のテスト */
 
 void	test_SimplePipe(void)
 {
-	test_grammar_validation("echo hello | grep h", OK);
+	test_grammar_validation("echo hello | grep h", OK, __LINE__);
 }
 
 void	test_MultiPipe(void)
 {
-	test_grammar_validation("ls | grep a | wc -l", OK);
+	test_grammar_validation("ls | grep a | wc -l", OK, __LINE__);
 }
 
 void	test_PipeWithError(void)
 {
 	// パイプの後にコマンドがない場合はエラー
-	test_grammar_error_token("ls |", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls |", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_PipeStartError(void)
 {
 	// パイプから始まる場合はエラー
-	test_grammar_error_token("| ls", 0, OP_PIPE, "|");
+	test_grammar_error_token("| ls", 0, OP_PIPE, "|", __LINE__);
 }
 
 void	test_DoublePipeError(void)
 {
 	// 連続したパイプはエラー
-	test_grammar_error_token("ls | | grep a", 2, OP_PIPE, "|");
+	test_grammar_error_token("ls | | grep a", 2, OP_PIPE, "|", __LINE__);
 }
 
 /* リダイレクト演算子のテスト */
 
 void	test_RedirectInput(void)
 {
-	test_grammar_validation("cat < input.txt", OK);
+	test_grammar_validation("cat < input.txt", OK, __LINE__);
 }
 
 void	test_RedirectOutput(void)
 {
-	test_grammar_validation("ls > output.txt", OK);
+	test_grammar_validation("ls > output.txt", OK, __LINE__);
 }
 
 void	test_RedirectAppend(void)
 {
-	test_grammar_validation("echo hello >> log.txt", OK);
+	test_grammar_validation("echo hello >> log.txt", OK, __LINE__);
 }
 
 void	test_RedirectHeredoc(void)
 {
-	test_grammar_validation("cat << EOF", OK);
+	test_grammar_validation("cat << EOF", OK, __LINE__);
 }
 
 void	test_RedirectCombined(void)
 {
-	test_grammar_validation("cat < input.txt > output.txt", OK);
+	test_grammar_validation("cat < input.txt > output.txt", OK, __LINE__);
 }
 
 void	test_RedirectError(void)
 {
 	// リダイレクトの後にファイル名がない場合はエラー
-	test_grammar_error_token("ls >", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls >", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_RedirectStart(void)
 {
-	test_grammar_error_token("> output.txt", 0, OP_OUTPUT, ">");
+	test_grammar_error_token("> output.txt", 0, OP_OUTPUT, ">", __LINE__);
 }
 
 /* 論理演算子のテスト */
 
 void	test_AndOperator(void)
 {
-	test_grammar_validation("ls && echo success", OK);
+	test_grammar_validation("ls && echo success", OK, __LINE__);
 }
 
 void	test_OrOperator(void)
 {
-	test_grammar_validation("ls || echo failure", OK);
+	test_grammar_validation("ls || echo failure", OK, __LINE__);
 }
 
 void	test_AndOrCombined(void)
 {
-	test_grammar_validation("ls && echo success || echo failure", OK);
+	test_grammar_validation("ls && echo success || echo failure", OK, __LINE__);
 }
 
 void	test_AndError(void)
 {
 	// ANDの後にコマンドがない場合はエラー
-	test_grammar_error_token("ls &&", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls &&", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_OrError(void)
 {
 	// ORの後にコマンドがない場合はエラー
-	test_grammar_error_token("ls ||", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls ||", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_AndStartError(void)
 {
 	// ANDから始まる場合はエラー
-	test_grammar_error_token("&& ls", 0, OP_AND, "&&");
+	test_grammar_error_token("&& ls", 0, OP_AND, "&&", __LINE__);
 }
 
 void	test_OrStartError(void)
 {
 	// ORから始まる場合はエラー
-	test_grammar_error_token("|| ls", 0, OP_OR, "||");
+	test_grammar_error_token("|| ls", 0, OP_OR, "||", __LINE__);
 }
 
 /* サブシェルのテスト */
 
 void	test_SimpleSubshell(void)
 {
-	test_grammar_validation("(ls)", OK);
+	test_grammar_validation("(ls)", OK, __LINE__);
 }
 
 void	test_NestedSubshell(void)
 {
-	test_grammar_validation("(ls && (echo hello))", OK);
+	test_grammar_validation("(ls && (echo hello))", OK, __LINE__);
 }
 
 void	test_SubshellWithPipe(void)
 {
-	test_grammar_validation("(ls) | grep a", OK);
+	test_grammar_validation("(ls) | grep a", OK, __LINE__);
 }
 
 void	test_SubshellUnbalancedOpen(void)
 {
 	// 開きカッコだけの場合はエラー
-	test_grammar_error_token("(ls", 2, TERMINATOR, "newline");
+	test_grammar_error_token("(ls", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_SubshellUnbalancedClose(void)
 {
 	// 閉じカッコだけの場合はエラー
-	test_grammar_error_token("ls)", 1, OP_CLOSE, ")");
+	test_grammar_error_token("ls)", 1, OP_CLOSE, ")", __LINE__);
 }
 
 void	test_SubshellEmpty(void)
 {
 	// 空のサブシェルはエラー
-	test_grammar_error_token("()", 0, OP_CLOSE, ")");
+	test_grammar_error_token("()", 0, OP_CLOSE, ")", __LINE__);
 }
 
 /* クォートのテスト */
 
 void	test_SingleQuotes(void)
 {
-	test_grammar_validation("echo 'hello world'", OK);
+	test_grammar_validation("echo 'hello world'", OK, __LINE__);
 }
 
 void	test_DoubleQuotes(void)
 {
-	test_grammar_validation("echo \"hello world\"", OK);
+	test_grammar_validation("echo \"hello world\"", OK, __LINE__);
 }
 
 void	test_MixedQuotes(void)
 {
-	test_grammar_validation("echo \"hello 'world'\"", OK);
+	test_grammar_validation("echo \"hello 'world'\"", OK, __LINE__);
 }
 
 /* 複合演算子のテスト */
 
 void	test_ComplexCommand1(void)
 {
-	test_grammar_validation("ls -la | grep a > output.txt", OK);
+	test_grammar_validation("ls -la | grep a > output.txt", OK, __LINE__);
 }
 
 void	test_ComplexCommand2(void)
 {
-	test_grammar_validation("(cat < input.txt) | grep a && echo success", OK);
+	test_grammar_validation("(cat < input.txt) | grep a && echo success", OK,
+		__LINE__);
 }
 
 void	test_ComplexCommand3(void)
 {
-	test_grammar_validation("ls && (echo success | grep s) || echo failure",
-		OK);
+	test_grammar_validation("ls && (echo success | grep s) || echo failure", OK,
+		__LINE__);
 }
 
 void	test_ComplexCommand4(void)
 {
 	test_grammar_validation("(ls && echo success) || (echo failure && ls -la)",
-		OK);
+		OK, __LINE__);
 }
 
 void	test_ComplexCommand5(void)
 {
-	test_grammar_validation("cat << EOF | grep pattern > output.txt", OK);
+	test_grammar_validation("cat << EOF | grep pattern > output.txt", OK,
+		__LINE__);
 }
 
 /* 演算子の組み合わせの網羅的なテスト */
@@ -321,7 +329,7 @@ void	test_AllOperatorsCombination1(void)
 	char	*input;
 
 	input = "ls -la | grep a > file && echo 'success' || echo \"failure\"";
-	test_grammar_validation(input, OK);
+	test_grammar_validation(input, OK, __LINE__);
 }
 
 void	test_AllOperatorsCombination2(void)
@@ -329,13 +337,13 @@ void	test_AllOperatorsCombination2(void)
 	char	*input;
 
 	input = "(cat < input.txt | grep pattern) > output.txt && echo done";
-	test_grammar_validation(input, OK);
+	test_grammar_validation(input, OK, __LINE__);
 }
 
 void	test_AllOperatorsCombination3(void)
 {
 	test_grammar_validation("cat << EOF | (grep pattern && wc -l) >> log.txt",
-		OK);
+		OK, __LINE__);
 }
 
 void	test_AllOperatorsCombination4(void)
@@ -343,44 +351,44 @@ void	test_AllOperatorsCombination4(void)
 	char	*input;
 
 	input = "(ls -la > file) && (cat file | grep pattern)|| echo 'not found'";
-	test_grammar_validation(input, OK);
+	test_grammar_validation(input, OK, __LINE__);
 }
 
 void	test_AllOperatorsCombination5(void)
 {
 	test_grammar_validation("echo \"start\" && (cat < file1 > file2) | wc -l",
-		OK);
+		OK, __LINE__);
 }
 
 /* エラー��ースの網羅的な�����スト */
 
 void	test_ErrorCombination1(void)
 {
-	test_grammar_error_token("ls | && cat", 2, OP_AND, "&&");
+	test_grammar_error_token("ls | && cat", 2, OP_AND, "&&", __LINE__);
 	// パイプと論理演算子が隣接
 }
 
 void	test_ErrorCombination2(void)
 {
-	test_grammar_error_token("ls > > file", 2, OP_OUTPUT, ">");
+	test_grammar_error_token("ls > > file", 2, OP_OUTPUT, ">", __LINE__);
 	// 連続したリダイレクト
 }
 
 void	test_ErrorCombination3(void)
 {
-	test_grammar_error_token("(ls &&) || echo", 2, OP_CLOSE, ")");
+	test_grammar_error_token("(ls &&) || echo", 2, OP_CLOSE, ")", __LINE__);
 	// 不完全なサブシェル内の式
 }
 
 void	test_ErrorCombination4(void)
 {
-	test_grammar_error_token("ls (cat file)", 1, OP_OPEN, "(");
+	test_grammar_error_token("ls (cat file)", 1, OP_OPEN, "(", __LINE__);
 	// 無効なサブシェルの使用
 }
 
 void	test_Combination5(void)
 {
-	test_grammar_error_token("ls | > file", 2, OP_OUTPUT, ">");
+	test_grammar_error_token("ls | > file", 2, OP_OUTPUT, ">", __LINE__);
 	// パイプの後に直接リ��イレクト
 }
 
@@ -389,82 +397,82 @@ void	test_Combination5(void)
 void	test_ErrorToken_AndOr(void)
 {
 	// "&&" と "||" のみの入力では最初の "&&" がエラートークンとして返される
-	test_grammar_error_token("&& ||", 0, OP_AND, "&&");
+	test_grammar_error_token("&& ||", 0, OP_AND, "&&", __LINE__);
 }
 
 void	test_ErrorToken_OrAfterCommand(void)
 {
 	// "echo aaa && ||" の場合は "||" がエラートークンとして返される
-	test_grammar_error_token("echo aaa && ||", 2, OP_OR, "||");
+	test_grammar_error_token("echo aaa && ||", 2, OP_OR, "||", __LINE__);
 }
 
 void	test_ErrorToken_PipeLine(void)
 {
 	// パイプの後にコマンドがない場合、パイプがエラートークン
-	test_grammar_error_token("ls |", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls |", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_ErrorToken_StartWithPipe(void)
 {
 	// パイプから始まる場合、パイプがエラートークン
-	test_grammar_error_token("| ls", 0, OP_PIPE, "|");
+	test_grammar_error_token("| ls", 0, OP_PIPE, "|", __LINE__);
 }
 
 void	test_ErrorToken_DoublePipe(void)
 {
 	// 連続したパイプの場合、2つ目のパイプがエラートークン
-	test_grammar_error_token("ls | | grep", 2, OP_PIPE, "|");
+	test_grammar_error_token("ls | | grep", 2, OP_PIPE, "|", __LINE__);
 }
 
 void	test_ErrorToken_RedirectWithoutFile(void)
 {
 	// リダイレクト後にファイル名がない場合、リダイレクトがエラートークン
-	test_grammar_error_token("ls >", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls >", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_ErrorToken_AndWithoutCommand(void)
 {
 	// AND演算子の後にコマンドがない場合、ANDがエラートークン
-	test_grammar_error_token("ls &&", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls &&", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_ErrorToken_OrWithoutCommand(void)
 {
 	// OR演算子の後にコマンドがない場合、ORがエラートークン
-	test_grammar_error_token("ls ||", 2, TERMINATOR, "newline");
+	test_grammar_error_token("ls ||", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_ErrorToken_StartWithAnd(void)
 {
 	// AND演算子から始まる場合、ANDがエラートークン
-	test_grammar_error_token("&& ls", 0, OP_AND, "&&");
+	test_grammar_error_token("&& ls", 0, OP_AND, "&&", __LINE__);
 }
 
 void	test_ErrorToken_StartWithOr(void)
 {
 	// OR演算子から始まる場合、ORがエラートークン
-	test_grammar_error_token("|| ls", 0, OP_OR, "||");
+	test_grammar_error_token("|| ls", 0, OP_OR, "||", __LINE__);
 }
 
 void	test_ErrorToken_UnbalancedOpenParen(void)
 {
 	// 開きカッコのみの場合、終端のトークンがエラートークン（閉じカッコがない）
-	test_grammar_error_token("(ls", 2, TERMINATOR, "newline");
+	test_grammar_error_token("(ls", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_ErrorToken_UnbalancedCloseParen(void)
 {
 	// 閉じカッコが余分にある場合、閉じカッコがエラートークン
-	test_grammar_error_token("ls)", 1, OP_CLOSE, ")");
+	test_grammar_error_token("ls)", 1, OP_CLOSE, ")", __LINE__);
 }
 
 void	test_ErrorToken_ComplexErrors(void)
 {
 	// 複雑なコマンドでのエラーケース
-	test_grammar_error_token("ls | && cat", 2, OP_AND, "&&");
-	test_grammar_error_token("ls > > file", 2, OP_OUTPUT, ">");
-	test_grammar_error_token("(ls &&) || echo", 2, OP_CLOSE, ")");
-	test_grammar_error_token("ls (cat file)", 1, OP_OPEN, "(");
+	test_grammar_error_token("ls | && cat", 2, OP_AND, "&&", __LINE__);
+	test_grammar_error_token("ls > > file", 2, OP_OUTPUT, ">", __LINE__);
+	test_grammar_error_token("(ls &&) || echo", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar_error_token("ls (cat file)", 1, OP_OPEN, "(", __LINE__);
 }
 
 /* サブシェル内部のエラーテスト */
@@ -472,9 +480,9 @@ void	test_ErrorToken_ComplexErrors(void)
 void	test_ErrorToken_InSubshell(void)
 {
 	// サブシェル内のエラー
-	test_grammar_error_token("(ls | | wc)", 3, OP_PIPE, "|");
-	test_grammar_error_token("(echo && || cat)", 3, OP_OR, "||");
-	test_grammar_error_token("(echo > )", 2, OP_CLOSE, ")");
+	test_grammar_error_token("(ls | | wc)", 3, OP_PIPE, "|", __LINE__);
+	test_grammar_error_token("(echo && || cat)", 3, OP_OR, "||", __LINE__);
+	test_grammar_error_token("(echo > )", 2, OP_CLOSE, ")", __LINE__);
 }
 
 /* 複合的なエラーケース */
@@ -482,8 +490,10 @@ void	test_ErrorToken_InSubshell(void)
 void	test_ErrorToken_NestedSubshellErrors(void)
 {
 	// 入れ子になったサブシェル内のエラー
-	test_grammar_error_token("(ls && (echo | | cat))", 6, OP_PIPE, "|");
-	test_grammar_error_token("(ls && (echo &&) || cat)", 5, OP_CLOSE, ")");
+	test_grammar_error_token("(ls && (echo | | cat))", 6, OP_PIPE, "|",
+		__LINE__);
+	test_grammar_error_token("(ls && (echo &&) || cat)", 5, OP_CLOSE, ")",
+		__LINE__);
 }
 
 /* サブシェルカウントの検証 */
