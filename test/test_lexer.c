@@ -523,15 +523,18 @@ void	test_foolish_single_quote_02(void)
 {
 	t_list	*tokens;
 	int		exit_status;
+	char	*test3;
 
+	test3 = " << >> && || | < > ( ) ";
 	tokens = NULL;
-	exit_status = lexer(")h'", &tokens);
+	exit_status = lexer(")h' << >> && || | < > ( ) ' \"", &tokens);
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, exit_status);
-	TEST_ASSERT_EQUAL_INT(4, count_tokens(tokens));
+	TEST_ASSERT_EQUAL_INT(8, count_tokens(tokens));
 	// Check each token's type and content
 	check_token(make_token(0, tokens), 0, OP_CLOSE, ")");
 	check_token(make_token(1, tokens), 1, OPERAND_TEXT, "h");
 	check_token(make_token(2, tokens), 2, QUOTE_SINGLE, "'");
-	check_token(make_token(3, tokens), 3, TERMINATOR, "\n");
+	check_token(make_token(3, tokens), 3, OPERAND_TEXT, test3);
+	check_token(make_token(7, tokens), 7, TERMINATOR, "\n");
 	ft_lstclear(&tokens, free_token);
 }

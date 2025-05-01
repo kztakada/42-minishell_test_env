@@ -56,27 +56,6 @@ static char	*replase_first_ifs_with_null(char *str)
 	return (str);
 }
 
-// 基本的なテスト関数 - 文法チェックが成功するかどうかをテスト
-// static void	test_grammar(OK,const char *input, int expected_result,
-// 		int line_num)
-// {
-// 	t_list	*token_list;
-// 	int		subshell_count;
-// 	int		result;
-
-// 	token_list = NULL;
-// 	subshell_count = 0;
-// 	// lexerでトークンリストを取得
-// 	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
-// 			&token_list), line_num, "TEST_01");
-// 	// 文法チェックを実行
-// 	result = check_tokens_grammar(&token_list, &subshell_count);
-// 	// 結果を検証
-// 	UNITY_TEST_ASSERT_EQUAL_INT(expected_result, result, line_num, "TEST_02");
-// 	// クリーンアップ
-// 	ft_lstclear(&token_list, free_token);
-// }
-
 // エラー時のトークンポインタを検証するヘルパー関数
 static void	test_grammar(int expected_result, const char *input,
 		int expected_id, t_token_type expected_type, const char *expected_value,
@@ -98,7 +77,8 @@ static void	test_grammar(int expected_result, const char *input,
 	// 文法チェックを実行
 	result = check_tokens_grammar(&token_list, &subshell_count);
 	// 合格orエラーを検証
-	UNITY_TEST_ASSERT_EQUAL_INT(expected_result, result, line_num, "TEST_02");
+	UNITY_TEST_ASSERT_EQUAL_INT(expected_result, result, line_num,
+		"TEST_02_OK/NG");
 	// エラートークンの検証
 	UNITY_TEST_ASSERT_NOT_NULL(token_list, line_num, "TEST_03");
 	error_token = (t_token *)(token_list->content);
@@ -110,11 +90,11 @@ static void	test_grammar(int expected_result, const char *input,
 		err_text = error_token->value;
 	UNITY_TEST_ASSERT_NOT_NULL(error_token, line_num, "TEST_04");
 	UNITY_TEST_ASSERT_EQUAL_UINT(expected_id, error_token->id, line_num,
-		"TEST_05");
+		"TEST_05_token_id");
 	UNITY_TEST_ASSERT_EQUAL_INT(expected_type, error_token->type, line_num,
-		"TEST_06");
+		"TEST_06_token_type");
 	UNITY_TEST_ASSERT_EQUAL_STRING(expected_value, err_text, line_num,
-		"TEST_07");
+		"TEST_07_token_value");
 	// クリーンアップ
 	ft_lstclear(&token_list, free_token);
 }
@@ -128,6 +108,42 @@ void	test_Command(void)
 {
 	test_grammar(OK, "echo hello", 1, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "ls -la", 1, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello >>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello &&", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello ||", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello |", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello <", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello >", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello (", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo hello )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo hello '", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello \"", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"| \n", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(OK, "echo hello echo a", 1, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello<<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello>>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello&&", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello||", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello|", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo hello(", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo hello)", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo hello'", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo hello\"", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"| \n", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(OK, "echo helloecho a", 1, TERMINATOR, "newline", __LINE__);
 }
 
 /* ************************************************************************** */
@@ -137,6 +153,67 @@ void	test_Pipe(void)
 {
 	test_grammar(OK, "echo hello | grep h", 3, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "ls | grep a | wc -l", 5, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---start---
+	test_grammar(NG, "| <<", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| >>", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| &&", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| ||", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| |", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| <", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| >", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| (", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| )", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| '", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| \"", 0, OP_PIPE, "|", __LINE__);
+	// test_grammar(NG,"| \n", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "| echo a", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|<<", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|>>", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|&&", 0, OP_PIPE, "|", __LINE__); // パイプ＆バックグラウンドは無し
+	test_grammar(NG, "|||", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|<", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|>", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|(", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|)", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|'", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "|\"", 0, OP_PIPE, "|", __LINE__);
+	// test_grammar(NG,"|\n", 0, OP_PIPE, "||", __LINE__);
+	test_grammar(NG, "|echo a", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a | <<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a | >>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a | &&", 2, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a | ||", 2, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a | |", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a | <", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a | >", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a | (", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a | )", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a | '", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a | \"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"| \n", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(OK, "echo a | echo a", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a |<<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a |>>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a |&&", 2, OP_AND, "&&", __LINE__); // bashでは&でNG
+	test_grammar(NG, "echo a |||", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a ||", 2, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a |<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a |>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a |(", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a |)", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a |'", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a |\"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"| \n", 0, OP_PIPE, "|", __LINE__);
+	test_grammar(OK, "echo a |echo a", 3, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---end---
 	// パイプの後にコマンドがない場合はエラー
 	test_grammar(NG, "ls |", 2, TERMINATOR, "newline", __LINE__);
 	// パイプから始まる場合はエラー
@@ -146,7 +223,8 @@ void	test_Pipe(void)
 	// パイプと論理演算子が隣接
 	test_grammar(NG, "ls | && cat", 2, OP_AND, "&&", __LINE__);
 	// パイプの後に直接リ��イレクト
-	test_grammar(NG, "ls | > file", 2, OP_OUTPUT, ">", __LINE__);
+	test_grammar(OK, "ls | > file", 4, TERMINATOR, "newline", __LINE__);
+	// 特殊ケース
 	// パイプの後にコマンドがない場合、パイプがエラートークン
 	test_grammar(NG, "ls |", 2, TERMINATOR, "newline", __LINE__);
 	// パイプから始まる場合、パイプがエラートークン
@@ -162,16 +240,67 @@ void	test_Pipe(void)
 void	test_RedirectInput(void)
 {
 	test_grammar(OK, "cat < input.txt", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "< <<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, "< >>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, "< &&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "< ||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "< |", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "< <", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, "< >", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, "< (", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "< )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "< '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "< \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG,"< \n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, "< echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<<<", 1, OP_INPUT, "<", __LINE__); // bashではOK
+	// test_grammar(NG, "<>>", 1, OP_OUTPUT, ">", __LINE__); // なぜか>が優先
+	test_grammar(NG, "<&&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "<||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "<|", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "<<", 1, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "<>", 2, TERMINATOR, "newline", __LINE__); // 特殊なケース
+	test_grammar(NG, "<(", 1, OP_OPEN, "(", __LINE__); // bashではOK プロセス置換え
+	test_grammar(NG, "<)", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "<'", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG,"<\n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, "<echo a", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_RedirectOutput(void)
 {
 	test_grammar(OK, "ls > output.txt", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "> <<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, "> >>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, "> &&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "> ||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "> |", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "> <", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, "> >", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, "> (", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "> )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "> '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "> \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "> \n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, "> echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "><<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, ">>>", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, ">&&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, ">||", 1, OP_OR, "||", __LINE__); // パイプ＆バックグラウンドは無し
+	test_grammar(NG, ">|", 1, OP_PIPE, "|", __LINE__); // パイプ＆バックグラウンドは無し
+	test_grammar(NG, "><", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, ">>", 1, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, ">(", 1, OP_OPEN, "(", __LINE__); // bashではOK プロセス置換え
+	test_grammar(NG, ">)", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ">'", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, ">\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, ">\n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, ">echo a", 2, TERMINATOR, "newline", __LINE__);
 	// リダイレクトの後にファイル名がない場合はエラー
 	test_grammar(NG, "ls >", 2, TERMINATOR, "newline", __LINE__);
 	// リダイレクトから始まる場合はエラー
-	test_grammar(NG, "> output.txt", 0, OP_OUTPUT, ">", __LINE__);
-	// 連続したリダイレクト
+	test_grammar(OK, "> output.txt", 2, TERMINATOR, "newline", __LINE__);
 	test_grammar(NG, "ls > > file", 2, OP_OUTPUT, ">", __LINE__);
 }
 
@@ -179,11 +308,62 @@ void	test_RedirectAppend(void)
 {
 	test_grammar(OK, "echo hello >> log.txt", 3, TERMINATOR, "newline",
 		__LINE__);
+	test_grammar(NG, ">> <<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, ">> >>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, ">> &&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, ">> ||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, ">> |", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, ">> <", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, ">> >", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, ">> (", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, ">> )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ">> '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, ">> \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, ">> \n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, ">> echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, ">><<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, ">>>>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, ">>&&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, ">>||", 1, OP_OR, "||", __LINE__); // パイプ＆バックグラウンドは無し
+	test_grammar(NG, ">>|", 1, OP_PIPE, "|", __LINE__); // パイプ＆バックグラウンドは無し
+	test_grammar(NG, ">><", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, ">>>", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, ">>(", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, ">>)", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ">>'", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, ">>\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, ">>\n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, ">>echo a", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_RedirectHeredoc(void)
 {
-	test_grammar(OK, "cat << EOF", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<< <<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, "<< >>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, "<< &&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "<< ||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "<< |", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "<< <", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, "<< >", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, "<< (", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "<< )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "<< '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<< \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG,"< \n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, "<< echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<<<<", 1, OP_HEREDOC, "<<", __LINE__);
+	test_grammar(NG, "<<>>", 1, OP_APPEND, ">>", __LINE__);
+	test_grammar(NG, "<<&&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "<<||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "<<|", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "<<<", 1, OP_INPUT, "<", __LINE__);
+	test_grammar(NG, "<<>", 1, OP_OUTPUT, ">", __LINE__);
+	test_grammar(NG, "<<(", 1, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "<<)", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "<<'", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "<<\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG,"<\n", 0, OP_OR, "||", __LINE__);
+	test_grammar(OK, "<<echo a", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_RedirectCombined(void)
@@ -198,6 +378,66 @@ void	test_RedirectCombined(void)
 void	test_AndOperator(void)
 {
 	test_grammar(OK, "ls && echo success", 3, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---start---
+	test_grammar(NG, "&& <<", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& >>", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& &&", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& ||", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& |", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& <", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& >", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& (", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& )", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& '", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&& \"", 0, OP_AND, "&&", __LINE__);
+	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(NG, "&& echo a", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&<<", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&>>", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&&&", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&||", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&|", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&<", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&>", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&(", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&)", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&'", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "&&\"", 0, OP_AND, "&&", __LINE__);
+	// test_grammar(NG,"&&\n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(NG, "&&echo a", 0, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a && <<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a && >>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a && &&", 2, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a && ||", 2, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a && |", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a && <", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a && >", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a && (", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a && )", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a && '", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a && \"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(OK, "echo a && echo a", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a &&<<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a &&>>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a &&&&", 2, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a &&||", 2, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a &&|", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a &&<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a &&>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a &&(", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a &&)", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a &&'", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a &&\"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(OK, "echo a &&echo a", 3, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---end---
 	// ANDの後にコマンドがない場合はエラー
 	test_grammar(NG, "ls &&", 2, TERMINATOR, "newline", __LINE__);
 	// ANDから始まる場合はエラー
@@ -213,6 +453,66 @@ void	test_AndOperator(void)
 void	test_OrOperator(void)
 {
 	test_grammar(OK, "ls || echo failure", 3, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---start---
+	test_grammar(NG, "|| <<", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| >>", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| &&", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| ||", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| |", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| <", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| >", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| (", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| )", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| '", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| \"", 0, OP_OR, "||", __LINE__);
+	// test_grammar(NG,"|| \n", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|| echo a", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||<<", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||>>", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||&&", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||||", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "|||", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||<", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||>", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||(", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||)", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||'", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||\"", 0, OP_OR, "||", __LINE__);
+	// test_grammar(NG,"||\n", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "||echo a", 0, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a || <<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a || >>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a || &&", 2, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a || ||", 2, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a || |", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a || <", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a || >", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a || (", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a || )", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a || '", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a || \"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(OK, "echo a || echo a", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a ||<<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a ||>>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a ||&&", 2, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "echo a ||||", 2, OP_OR, "||", __LINE__);
+	test_grammar(NG, "echo a |||", 2, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "echo a ||<", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a ||>", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo a ||(", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a ||)", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo a ||'", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "echo a ||\"", 3, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
+	test_grammar(OK, "echo a ||echo a", 3, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---end---
 	// ORの後にコマンドがない場合はエラー
 	test_grammar(NG, "ls ||", 2, TERMINATOR, "newline", __LINE__);
 	// ORから始まる場合はエラー
@@ -236,28 +536,121 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "(ls && (echo hello))", 7, TERMINATOR, "newline",
 		__LINE__);
 	test_grammar(OK, "(ls) | grep a", 5, TERMINATOR, "newline", __LINE__);
+	// レギュラーのテスト ---start---
+	// NG open
+	test_grammar(NG, "( <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( >>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( &&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "( ||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "( |", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "( <", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( >", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( (", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( )", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "( '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "( \n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "( echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(<<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(>>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(&&", 1, OP_AND, "&&", __LINE__);
+	test_grammar(NG, "(||", 1, OP_OR, "||", __LINE__);
+	test_grammar(NG, "(|", 1, OP_PIPE, "|", __LINE__);
+	test_grammar(NG, "(<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "((", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "()", 1, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "('", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "(\n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a", 2, TERMINATOR, "newline", __LINE__);
+	// NG close
+	test_grammar(NG, ") <<", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") >>", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") &&", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") ||", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") |", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") <", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") >", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") (", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") )", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") '", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") \"", 0, OP_CLOSE, ")", __LINE__);
+	// test_grammar(NG, ") \n", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ") echo a", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")<<", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")>>", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")&&", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")||", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")|", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")<", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")>", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")(", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "))", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")'", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")\"", 0, OP_CLOSE, ")", __LINE__);
+	// test_grammar(NG, ")\n", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, ")echo a", 0, OP_CLOSE, ")", __LINE__);
+	// NG open close
+	test_grammar(NG, "(echo a) <<", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a) >>", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a) &&", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a) ||", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a) |", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a) <", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a) >", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a) (", 3, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "(echo a) )", 3, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(echo a) '", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a) \"", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG, "(echo a) \n", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(echo a) echo a", 3, OPERAND_TEXT, "echo", __LINE__);
+	test_grammar(NG, "(echo a)<<", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a)>>", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a)&&", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a)||", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a)|", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a)<", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a)>", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "(echo a)(", 3, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "(echo a))", 3, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(echo a)'", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	test_grammar(NG, "(echo a)\"", 4, TERMINATOR, "newline", __LINE__);
+	// bashではOK
+	// test_grammar(NG, "(echo a) \n", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(echo a)echo a", 3, OPERAND_TEXT, "echo", __LINE__);
+	// レギュラーのテスト ---end---
 	// 開きカッコだけの場合はエ�����������ー
 	test_grammar(NG, "(ls", 2, TERMINATOR, "newline", __LINE__);
 	// 閉じカッコだけの場合はエラー
 	test_grammar(NG, "ls)", 1, OP_CLOSE, ")", __LINE__);
 	// 空のサブシェルはエラー
-	test_grammar(NG, "()", 0, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "()", 1, OP_CLOSE, ")", __LINE__);
 	// 不完全なサブシェル内の式
-	test_grammar(NG, "(ls &&) || echo", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(ls &&) || echo", 3, OP_CLOSE, ")", __LINE__);
 	// 無効なサブシェルの使用
 	test_grammar(NG, "ls (cat file)", 1, OP_OPEN, "(", __LINE__);
 	// 開きカッコのみの場合、終端のトークンがエラートークン（閉じカッコがない）
 	test_grammar(NG, "(ls", 2, TERMINATOR, "newline", __LINE__);
 	// 閉じカッコが余分にある場合、閉じカッコがエラートークン
 	test_grammar(NG, "ls)", 1, OP_CLOSE, ")", __LINE__);
-	test_grammar(NG, "(ls &&) || echo", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(ls &&) || echo", 3, OP_CLOSE, ")", __LINE__);
 	test_grammar(NG, "ls (cat file)", 1, OP_OPEN, "(", __LINE__);
 	test_grammar(NG, "(ls | | wc)", 3, OP_PIPE, "|", __LINE__);
 	test_grammar(NG, "(echo && || cat)", 3, OP_OR, "||", __LINE__);
-	test_grammar(NG, "(echo > )", 2, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(echo > )", 3, OP_CLOSE, ")", __LINE__);
 	// 入れ子になったサブシェル内のエラー
 	test_grammar(NG, "(ls && (echo | | cat))", 6, OP_PIPE, "|", __LINE__);
-	test_grammar(NG, "(ls && (echo &&) || cat)", 5, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "(ls && (echo &&) || cat)", 6, OP_CLOSE, ")", __LINE__);
 }
 
 /* ************************************************************************** */
@@ -266,6 +659,73 @@ void	test_SimpleSubshell(void)
 void	test_SingleQuotes(void)
 {
 	test_grammar(OK, "echo 'hello world'", 4, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "echo 'hello \"world\"'", 4, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world' <<", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world' >>", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world' &&", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world' ||", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world' |", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world' <", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world' >", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world' (", 5, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo 'hello world' )", 5, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo 'hello world' '", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world' \"", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world'<<", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world'>>", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo 'hello world'&&", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world'||", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world'|", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world'<", 5, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo 'hello world'>", 5, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "echo 'hello world'(", 4, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo 'hello world')", 4, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo 'hello world''", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo 'hello world'\"", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "'hello world <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' >>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' &&", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' ||", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' |", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' <", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' >", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' (", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' )", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "' '", 3, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' \"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "' \n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "' echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'<<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'>>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'&&", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'||", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'|", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'(", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "')", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "''", 3, TERMINATOR, "newline", __LINE__); //空文字が挿入される
+	test_grammar(NG, "'\"", 2, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "'\n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "'echo a", 2, TERMINATOR, "newline", __LINE__);
 }
 
 void	test_DoubleQuotes(void)
@@ -274,6 +734,73 @@ void	test_DoubleQuotes(void)
 		__LINE__);
 	test_grammar(OK, "echo \"hello 'world'\"", 4, TERMINATOR, "newline",
 		__LINE__);
+	test_grammar(NG, "echo \"hello world\" <<", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\" >>", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\" &&", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\" ||", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\" |", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\" <", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\" >", 6, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\" (", 5, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo \"hello world\" )", 5, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo \"hello world\" '", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\" \"", 6, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\"<<", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\">>", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\"&&", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\"||", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\"|", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\"<", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\">", 5, TERMINATOR, "newline",
+		__LINE__);
+	test_grammar(NG, "echo \"hello world\"(", 4, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "echo \"hello world\")", 4, OP_CLOSE, ")", __LINE__);
+	test_grammar(NG, "echo \"hello world\"'", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "echo \"hello world\"\"", 5, TERMINATOR, "newline",
+					__LINE__); // bashではOK
+	test_grammar(NG, "\"hello world <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" <<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" >>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" &&", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" ||", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" |", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" <", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" >", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" (", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" )", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" '", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "\" \"", 3, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "\" \n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\" echo a", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"<<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\">>", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"&&", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"||", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"|", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"<", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\">", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"(", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\")", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"'", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "\"\"", 3, TERMINATOR, "newline", __LINE__);
+	// test_grammar(NG, "\"\n", 2, TERMINATOR, "newline", __LINE__);
+	test_grammar(NG, "\"echo a", 2, TERMINATOR, "newline", __LINE__);
 }
 
 /* ************************************************************************** */
@@ -351,7 +878,7 @@ void	test_ComplexErrorRecovery(void)
 	char	*input;
 
 	input = "(ls && echo hello || | grep pattern)";
-	// 複雑なコマンドで文法エラーがあっても適切にクリーンアップされるか
+	// 複雑���コマンドで文法エラーがあっても適切にクリーンアップされるか
 	token_list = NULL;
 	subshell_count = 0;
 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
