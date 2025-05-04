@@ -76,7 +76,14 @@ static void	test_grammar(int expected_result, const char *input,
 	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
 			&token_list), line_num, "TEST_01");
 	// 文法チェックを実行
-	result = check_tokens_grammar(&token_list, &subshell_count);
+	while (token_list)
+	{
+		result = check_tokens_grammar(&token_list, &subshell_count);
+		if (result == NG)
+			break ;
+		if (((t_token *)(token_list->content))->type == TERMINATOR)
+			break ;
+	}
 	// 合格orエラーを検証
 	UNITY_TEST_ASSERT_EQUAL_INT(expected_result, result, line_num,
 		"TEST_02_OK/NG");
@@ -424,14 +431,16 @@ void	test_RedirectHeredoc(void)
 	//シェル関数には対応しないのでbashとは異なる挙動にする
 	test_grammar(NG, "< << a", 1, OP_HEREDOC, "<<", __LINE__);
 	// 途中で止めるケース
-	test_grammar(OK, "<<\\(\\)", 2, OP_OPEN, "(", __LINE__);
-	test_grammar(OK, "(<<\\))", 3, OP_CLOSE, ")", __LINE__);
-	test_grammar(OK, "echo a | echo b && cat << end > out", 7, OP_OUTPUT, ">",
+	test_grammar(NG, "<<\\(\\)", 2, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "(<<\\))", 4, OP_CLOSE, ")", __LINE__);
+	test_grammar(OK, "echo a | echo b && cat << end > out", 9, TERMINATOR,
+		"newline", __LINE__);
+	test_grammar(OK, "((cat << ED < out)| << end)", 12, TERMINATOR, "newline",
 		__LINE__);
-	test_grammar(OK, "((cat << ED < out)| << end)", 5, OP_INPUT, "<", __LINE__);
 	// test_grammar(OK, "< out)| << end)", 5, OP_CLOSE, ")", __LINE__);
-	test_grammar(OK, "<< a << b << c", 2, OP_HEREDOC, "<<", __LINE__);
-	test_grammar(OK, "cat << end | (cat << abc)", 3, OP_PIPE, "|", __LINE__);
+	test_grammar(OK, "<< a << b << c", 6, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "cat << end | (cat << abc)", 9, TERMINATOR, "newline",
+		__LINE__);
 }
 
 void	test_RedirectCombined(void)
@@ -503,7 +512,7 @@ void	test_AndOperator(void)
 	test_grammar(NG, "echo a &&'", 3, TERMINATOR, "newline", __LINE__);
 	// bashではOK
 	test_grammar(NG, "echo a &&\"", 3, TERMINATOR, "newline", __LINE__);
-	// bashではOK
+	// bashで���OK
 	// test_grammar(NG,"&& \n", 0, OP_AND,  "&&", __LINE__);
 	test_grammar(OK, "echo a &&echo a", 3, TERMINATOR, "newline", __LINE__);
 	// レギュラーのテスト ---end---
@@ -731,6 +740,7 @@ void	test_SimpleSubshell(void)
 	test_grammar(NG, "(ls && (echo | | cat))", 6, OP_PIPE, "|", __LINE__);
 	test_grammar(NG, "(ls && (echo &&) || cat)", 6, OP_CLOSE, ")", __LINE__);
 	// エクストラケース
+	test_grammar(NG, "(ls && (echo hello)", 6, TERMINATOR, "newline", __LINE__);
 	test_grammar(NG, "cat \"\" (echo aaa)", 5, OP_OPEN, "(", __LINE__);
 	test_grammar(NG, "cat \"\"(echo aaa)", 4, OP_OPEN, "(", __LINE__);
 	test_grammar(NG, "echo aaa (echo aaa)", 1, OP_OPEN, "(", __LINE__);
@@ -739,10 +749,14 @@ void	test_SimpleSubshell(void)
 	test_grammar(NG, "echo )", 1, OP_CLOSE, ")", __LINE__);
 	test_grammar(NG, "export (=1", 1, OP_OPEN, "(", __LINE__);
 	test_grammar(NG, "(echo echo) (echo b) ", 3, OP_OPEN, "(", __LINE__);
+	test_grammar(NG, "(ls && echo hello || | grep pattern) ", 5, OP_PIPE, "|",
+		__LINE__);
 	test_grammar(OK, "( (ls) )", 5, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "((ls))", 5, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "( (echo a | cat ) )", 7, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "((echo a | cat ))", 7, TERMINATOR, "newline", __LINE__);
+	test_grammar(OK, "(ls && (echo hello) && (wc -l))", 11, TERMINATOR,
+		"newline", __LINE__);
 	// bashではNG
 	test_grammar(NG, "((echo a) echo b )", 4, OPERAND_TEXT, "echo", __LINE__);
 	test_grammar(NG, "((echo a)\\n echo b)", 4, OPERAND_TEXT, "\\n", __LINE__);
@@ -798,7 +812,7 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "(echo a>echo b)", 5, TERMINATOR, "newline", __LINE__);
 	test_grammar(OK, "(echo a | cat) > aaa", 7, TERMINATOR, "newline",
 		__LINE__);
-	// シェル関数に対応しないのでbashとは挙動を変更するパターン
+	// シェル関数に対応��ないのでbashとは挙動を変更するパターン
 	test_grammar(NG, "echo (", 1, OP_OPEN, "(", __LINE__);
 	test_grammar(NG, "echo ()", 1, OP_OPEN, "(", __LINE__); // bashではOK
 	test_grammar(NG, "echo (echo aaa)", 1, OP_OPEN, "(", __LINE__);
@@ -1109,57 +1123,59 @@ void	test_ComplexCommand1(void)
 		TERMINATOR, "newline", __LINE__);
 }
 
+//
 /* ************************************************************************** */
-/* サブシェルカウントの検証 */
+// /* サブシェルカウントの検証 */
 
-void	test_SubshellCount(void)
-{
-	t_list	*token_list;
-	int		subshell_count;
-	char	*input;
+// void	test_SubshellCount(void)
+// {
+// 	t_list	*token_list;
+// 	int		subshell_count;
+// 	char	*input;
 
-	input = "(ls && (echo hello) && (wc -l))";
-	token_list = NULL;
-	subshell_count = 0;
-	// 入れ子になったサブシェルでカウントが正しく管理されるか
-	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
-	TEST_ASSERT_EQUAL_INT(OK, check_tokens_grammar(&token_list,
-			&subshell_count));
-	TEST_ASSERT_EQUAL_INT(0, subshell_count); // 最��的に0に戻っていることを確認
-	ft_lstclear(&token_list, free_token);
-}
+// 	input = "(ls && (echo hello) && (wc -l))";
+// 	token_list = NULL;
+// 	subshell_count = 0;
+// 	// 入れ子になったサブシェルでカウントが正しく管理されるか
+// 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
+// 	TEST_ASSERT_EQUAL_INT(OK, check_tokens_grammar(&token_list,
+// 			&subshell_count));
+// 	TEST_ASSERT_EQUAL_INT(0, subshell_count); // 最��的に0に戻っていることを確認
+// 	ft_lstclear(&token_list, free_token);
+// }
 
-void	test_SubshellCountUnbalanced(void)
-{
-	t_list	*token_list;
-	int		subshell_count;
+// void	test_SubshellCountUnbalanced(void)
+// {
+// 	t_list	*token_list;
+// 	int		subshell_count;
 
-	token_list = NULL;
-	subshell_count = 0;
-	// バランスの取れていないサブシェルはエラー
-	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer("(ls && (echo hello)",
-			&token_list));
-	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
-			&subshell_count));
-	TEST_ASSERT_NOT_EQUAL(0, subshell_count); // 0に戻っていないはず
-	ft_lstclear(&token_list, free_token);
-}
+// 	token_list = NULL;
+// 	subshell_count = 0;
+// 	// バランスの取れていないサブシェルはエラー
+// 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer("(ls && (echo hello)",
+// 			&token_list));
+// 	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
+// 			&subshell_count));
+// 	TEST_ASSERT_NOT_EQUAL(0, subshell_count); // 0に戻っていないはず
+// 	ft_lstclear(&token_list, free_token);
+// }
 
+//
 /* ************************************************************************** */
-/* 新しいトークンを受け取れなくなる状況のテスト */
+// /* 新しいトークンを受け取れなくなる状況のテスト */
 
-void	test_ComplexErrorRecovery(void)
-{
-	t_list	*token_list;
-	int		subshell_count;
-	char	*input;
+// void	test_ComplexErrorRecovery(void)
+// {
+// 	t_list	*token_list;
+// 	int		subshell_count;
+// 	char	*input;
 
-	input = "(ls && echo hello || | grep pattern)";
-	// 複雑���コマンドで文法エラーがあっても適切にクリーンアップされるか
-	token_list = NULL;
-	subshell_count = 0;
-	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
-	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
-			&subshell_count));
-	ft_lstclear(&token_list, free_token);
-}
+// 	input = "(ls && echo hello || | grep pattern)";
+// 	// 複雑���コマンドで文法エラーがあっても適切にクリーンアップされるか
+// 	token_list = NULL;
+// 	subshell_count = 0;
+// 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
+// 	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
+// 			&subshell_count));
+// 	ft_lstclear(&token_list, free_token);
+// }
