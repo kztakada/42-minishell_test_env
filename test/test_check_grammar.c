@@ -676,7 +676,7 @@ void	test_OrOperator(void)
 	test_grammar(NG, "ls ||", 2, TERMINATOR, "newline", 0, __LINE__);
 	// ORから始まる場合はエラー
 	test_grammar(NG, "|| ls", 0, OP_OR, "||", 0, __LINE__);
-	// OR演算子の後にコマンドがない場��、OR��エラートークン
+	// OR演算子の後にコマンドがない場���、OR��エラートークン
 	test_grammar(NG, "ls ||", 2, TERMINATOR, "newline", 0, __LINE__);
 }
 
@@ -933,6 +933,16 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "((echo a)>\"echo b\")", 9, TERMINATOR, "newline", 0,
 		__LINE__);
 	test_grammar(OK, "((echo a)>echo)", 7, TERMINATOR, "newline", 0, __LINE__);
+	test_grammar(NG, "((echo a)>'a a'\"b\"cc'd' eee\"fff\" g\"hhh\"i'jjj)", 15,
+		OPERAND_TEXT, "eee", 0, __LINE__);
+	test_grammar(NG, "((echo a)>\"\" ''\"\"aa b", 9, QUOTE_SINGLE, "'", 0,
+		__LINE__);
+	test_grammar(NG, "((echo a)>aa\"bb\"cc'dd' 'ee'ff\"gg\"hh ii\"jj\"", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(NG, "((echo a)>aa\"bb\"cc'dd 'ee'ff\"gg\"hh ii\"jj\" kk", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(OK, "((echo a)>aa\"bb\"cc'dd')", 14, TERMINATOR, "newline", 0,
+		__LINE__);
 	//
 	test_grammar(NG, "((echo a)<echo b)", 5, OPERAND_TEXT, "b", 0, __LINE__);
 	test_grammar(NG, "( (echo a)<echo b)", 5, OPERAND_TEXT, "b", 0, __LINE__);
@@ -950,6 +960,16 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "((echo a)<\"echo b\")", 9, TERMINATOR, "newline", 0,
 		__LINE__);
 	test_grammar(OK, "((echo a)<echo)", 7, TERMINATOR, "newline", 0, __LINE__);
+	test_grammar(NG, "((echo a)<'a a'\"b\"cc'd' eee\"fff\" g\"hhh\"i'jjj)", 15,
+		OPERAND_TEXT, "eee", 0, __LINE__);
+	test_grammar(NG, "((echo a)<\"\" ''\"\"aa b", 9, QUOTE_SINGLE, "'", 0,
+		__LINE__);
+	test_grammar(NG, "((echo a)<aa\"bb\"cc'dd' 'ee'ff\"gg\"hh ii\"jj\"", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(NG, "((echo a)<aa\"bb\"cc'dd 'ee'ff\"gg\"hh ii\"jj\" kk", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(OK, "((echo a)<aa\"bb\"cc'dd')", 14, TERMINATOR, "newline", 0,
+		__LINE__);
 	//
 	test_grammar(NG, "((echo a)>>echo b)", 5, OPERAND_TEXT, "b", 0, __LINE__);
 	test_grammar(NG, "( (echo a)>>echo b)", 5, OPERAND_TEXT, "b", 0, __LINE__);
@@ -968,6 +988,16 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "((echo a)>>\"echo b\")", 9, TERMINATOR, "newline", 0,
 		__LINE__);
 	test_grammar(OK, "((echo a)>>echo)", 7, TERMINATOR, "newline", 0, __LINE__);
+	test_grammar(NG, "((echo a)>>'a a'\"b\"cc'd' eee\"fff\" g\"hhh\"i'jjj)", 15,
+		OPERAND_TEXT, "eee", 0, __LINE__);
+	test_grammar(NG, "((echo a)>>\"\" ''\"\"aa b", 9, QUOTE_SINGLE, "'", 0,
+		__LINE__);
+	test_grammar(NG, "((echo a)>>aa\"bb\"cc'dd' 'ee'ff\"gg\"hh ii\"jj\"", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(NG, "((echo a)>>aa\"bb\"cc'dd 'ee'ff\"gg\"hh ii\"jj\" kk", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(OK, "((echo a)>>aa\"bb\"cc'dd')", 14, TERMINATOR, "newline", 0,
+		__LINE__);
 	// サブシェルの後のリダイレクト先は厳密に単語を解釈する
 	test_grammar(NG, "((echo a)<<||echo b)", 5, OP_OR, "||", 0, __LINE__);
 	test_grammar(NG, "((echo a)<<'echo b)", 5, QUOTE_SINGLE, "'", 0, __LINE__);
@@ -994,6 +1024,17 @@ void	test_SimpleSubshell(void)
 	test_grammar(OK, "((echo a)<<\"echo b\")", 9, TERMINATOR, "newline", 1,
 		__LINE__);
 	test_grammar(OK, "((echo a)<<echo)", 7, TERMINATOR, "newline", 1, __LINE__);
+	//
+	test_grammar(NG, "((echo a)<<'a a'\"b\"cc'd' eee\"fff\" g\"hhh\"i'jjj)", 15,
+		OPERAND_TEXT, "eee", 1, __LINE__);
+	test_grammar(NG, "((echo a)<<\"\" ''\"\"aa b", 9, QUOTE_SINGLE, "'", 1,
+		__LINE__);
+	test_grammar(NG, "((echo a)<<aa\"bb\"cc'dd' 'ee'ff\"gg\"hh ii\"jj\"", 14,
+		QUOTE_SINGLE, "'", 1, __LINE__);
+	test_grammar(NG, "((echo a)<<aa\"bb\"cc'dd 'ee'ff\"gg\"hh ii\"jj\" kk", 14,
+		QUOTE_SINGLE, "'", 0, __LINE__);
+	test_grammar(OK, "((echo a)<<aa\"bb\"cc'dd')", 14, TERMINATOR, "newline", 1,
+		__LINE__);
 	//
 	//  プロセス置換えに対応しないのでbashとは挙動を変更するパターン
 	test_grammar(NG, "<(ls)", 1, OP_OPEN, "(", 0, __LINE__);
