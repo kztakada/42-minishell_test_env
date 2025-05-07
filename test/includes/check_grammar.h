@@ -6,6 +6,6 @@
 # include "common_error_exit.h"
 # include "t_minishell.h"
 
-int	check_tokens_grammar(t_list **current_tokens, int *subshell_count);
+int	check_tokens_grammar(t_list **current_tokens, int *subshell_depth);
 
 #endif

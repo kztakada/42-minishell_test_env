@@ -3,6 +3,9 @@
 #include "unity.h"
 #include <stdlib.h>
 
+#define OK 1
+#define NG 0
+
 // using source files for testing
 TEST_SOURCE_FILE("ft_calloc.c")
 TEST_SOURCE_FILE("ft_lstnew.c")
@@ -64,7 +67,7 @@ static void	test_grammar(int expected_result, const char *input,
 		int expected_heredoc_count, int line_num)
 {
 	t_list	*token_list;
-	int		subshell_count;
+	int		subshell_depth;
 	int		result;
 	t_token	*error_token;
 	char	*err_text;
@@ -75,7 +78,7 @@ static void	test_grammar(int expected_result, const char *input,
 	// char	*line_num_str;
 	token_list = NULL;
 	heredoc_flag = 0;
-	subshell_count = 0;
+	subshell_depth = 0;
 	heredoc_count = 0;
 	// lexerでトークンリストを取得
 	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
@@ -85,7 +88,7 @@ static void	test_grammar(int expected_result, const char *input,
 	{
 		if (((t_token *)(token_list->content))->type == OP_HEREDOC)
 			heredoc_flag = 1;
-		result = check_tokens_grammar(&token_list, &subshell_count);
+		result = check_tokens_grammar(&token_list, &subshell_depth);
 		if (result == OK && heredoc_flag == 1)
 			heredoc_count++;
 		heredoc_flag = 0;
@@ -124,7 +127,7 @@ static void	test_grammar2(int expected_result, const char *input,
 		int expected_heredoc_count, int line_num)
 {
 	t_list	*token_list;
-	int		subshell_count;
+	int		subshell_depth;
 	int		result;
 	t_token	*error_token;
 	char	*err_text;
@@ -135,7 +138,7 @@ static void	test_grammar2(int expected_result, const char *input,
 	// char	*line_num_str;
 	token_list = NULL;
 	heredoc_flag = 0;
-	subshell_count = 0;
+	subshell_depth = 0;
 	heredoc_count = 0;
 	// lexerでトークンリストを取得
 	UNITY_TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer((char *)input,
@@ -145,7 +148,7 @@ static void	test_grammar2(int expected_result, const char *input,
 	{
 		if (((t_token *)(token_list->content))->type == OP_HEREDOC)
 			heredoc_flag = 1;
-		result = check_tokens_grammar(&token_list, &subshell_count);
+		result = check_tokens_grammar(&token_list, &subshell_depth);
 		if (result == OK && heredoc_flag == 1)
 			heredoc_count++;
 		heredoc_flag = 0;
@@ -676,7 +679,7 @@ void	test_OrOperator(void)
 	test_grammar(NG, "ls ||", 2, TERMINATOR, "newline", 0, __LINE__);
 	// ORから始まる場合はエラー
 	test_grammar(NG, "|| ls", 0, OP_OR, "||", 0, __LINE__);
-	// OR演算子の後にコマンドがない場���、OR��エラートークン
+	// OR演算子の後��コマンドがない場����、OR��エラートークン
 	test_grammar(NG, "ls ||", 2, TERMINATOR, "newline", 0, __LINE__);
 }
 
@@ -1009,13 +1012,13 @@ void	test_SimpleSubshell(void)
 	test_grammar(NG, "( (echo a)<<echo b)", 5, OPERAND_TEXT, "b", 1, __LINE__);
 	//
 	test_grammar(NG, "( << a (<< b))", 3, OP_OPEN, "(", 1, __LINE__);
+	test_grammar(NG, "((echo a)<<'echo b' c)", 8, OPERAND_TEXT, "c", 1,
+		__LINE__);
+	test_grammar(NG, "( (echo a)<<echo b", 5, OPERAND_TEXT, "b", 1, __LINE__);
 	// heredocを実行してからエラーを出す
 	test_grammar(NG, "(echo a)<<echo b", 4, OPERAND_TEXT, "b", 1, __LINE__);
 	//
-	test_grammar(NG, "( (echo a)<<echo b", 5, OPERAND_TEXT, "b", 1, __LINE__);
 	//
-	test_grammar(NG, "((echo a)<<'echo b' c)", 8, OPERAND_TEXT, "c", 1,
-		__LINE__);
 	// 正常実行
 	test_grammar(OK, "echo a<<echo b", 3, TERMINATOR, "newline", 1, __LINE__);
 	//
@@ -1317,33 +1320,33 @@ void	test_ComplexCommand1(void)
 // void	test_SubshellCount(void)
 // {
 // 	t_list	*token_list;
-// 	int		subshell_count;
+// 	int		subshell_depth;
 // 	char	*input;
 
 // 	input = "(ls && (echo hello) && (wc -l))";
 // 	token_list = NULL;
-// 	subshell_count = 0;
+// 	subshell_depth = 0;
 // 	// 入れ子になったサブシェルでカウントが正しく管理されるか
 // 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
 // 	TEST_ASSERT_EQUAL_INT(OK, check_tokens_grammar(&token_list,
-// 			&subshell_count));
-// 	TEST_ASSERT_EQUAL_INT(0, subshell_count); // 最��的に0に戻っていることを確認
+// 			&subshell_depth));
+// 	TEST_ASSERT_EQUAL_INT(0, subshell_depth); // 最��的に0に戻っていることを確認
 // 	ft_lstclear(&token_list, free_token);
 // }
 
 // void	test_SubshellCountUnbalanced(void)
 // {
 // 	t_list	*token_list;
-// 	int		subshell_count;
+// 	int		subshell_depth;
 
 // 	token_list = NULL;
-// 	subshell_count = 0;
+// 	subshell_depth = 0;
 // 	// バランスの取れていないサブシェルはエラー
 // 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer("(ls && (echo hello)",
 // 			&token_list));
 // 	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
-// 			&subshell_count));
-// 	TEST_ASSERT_NOT_EQUAL(0, subshell_count); // 0に戻っていないはず
+// 			&subshell_depth));
+// 	TEST_ASSERT_NOT_EQUAL(0, subshell_depth); // 0に戻っていないはず
 // 	ft_lstclear(&token_list, free_token);
 // }
 
@@ -1354,15 +1357,15 @@ void	test_ComplexCommand1(void)
 // void	test_ComplexErrorRecovery(void)
 // {
 // 	t_list	*token_list;
-// 	int		subshell_count;
+// 	int		subshell_depth;
 // 	char	*input;
 
 // 	input = "(ls && echo hello || | grep pattern)";
 // 	// 複雑���コマンドで文法エラーがあっても適切にクリーンアップされるか
 // 	token_list = NULL;
-// 	subshell_count = 0;
+// 	subshell_depth = 0;
 // 	TEST_ASSERT_EQUAL_INT(EXIT_S_SUCCESS, lexer(input, &token_list));
 // 	TEST_ASSERT_EQUAL_INT(NG, check_tokens_grammar(&token_list,
-// 			&subshell_count));
+// 			&subshell_depth));
 // 	ft_lstclear(&token_list, free_token);
 // }
